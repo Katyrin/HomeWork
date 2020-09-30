@@ -49,7 +49,7 @@ public class GameWindow extends JFrame {
 
     }
 
-    public void acceptSettings(int gameMode,int filedSizeX,int filedSizeY,int winLength){
-        map.startNewGame(gameMode,filedSizeX,filedSizeY,winLength);
+    public void acceptSettings(int gameMode,int filedSizeX,int filedSizeY,int winLength,boolean isPlayWithAI){
+        map.startNewGame(gameMode,filedSizeX,filedSizeY,winLength,isPlayWithAI);
     }
 }
