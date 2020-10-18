@@ -6,8 +6,6 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
-import java.io.FileOutputStream;
-import java.io.IOException;
 
 public class ClientGUI extends JFrame implements ActionListener, Thread.UncaughtExceptionHandler, KeyListener {
     private static final int WIDTH = 400;
@@ -41,6 +39,7 @@ public class ClientGUI extends JFrame implements ActionListener, Thread.Uncaught
 
         btnSend.addActionListener(this);
         tfMessage.addKeyListener(this);
+        btnLogin.addActionListener(this);
 
         panelTop.add(tfIPAddress);
         panelTop.add(tfPort);
@@ -73,6 +72,8 @@ public class ClientGUI extends JFrame implements ActionListener, Thread.Uncaught
             setAlwaysOnTop(cbAlwaysOnTop.isSelected());
         }else if (src == btnSend){
             sendAction();
+        }else if (src == btnLogin){
+            ServerGUI.main(new String[0]);
         }else {
             throw new RuntimeException("Unknown action source: " + src);
         }
@@ -109,18 +110,18 @@ public class ClientGUI extends JFrame implements ActionListener, Thread.Uncaught
     // действие при нажатии на enter и на send
     private void sendAction(){
         log.append(tfMessage.getText() + "\n");
-        createFileTXT(tfMessage.getText() + "\n");
+        ServerGUI.writeChat(tfMessage.getText() + "\n");
         tfMessage.setText("");
     }
 
-    // создаю файл или добавляю текст если он существует
-    private void createFileTXT(String text){
-        try {
-            FileOutputStream fos = new FileOutputStream("log",true);
-            fos.write(text.getBytes());
-            fos.close();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
+//    // создаю файл или добавляю текст если он существует
+//    private void createFileTXT(String text){
+//        try {
+//            FileOutputStream fos = new FileOutputStream("log",true);
+//            fos.write(text.getBytes());
+//            fos.close();
+//        } catch (IOException e) {
+//            e.printStackTrace();
+//        }
+//    }
 }

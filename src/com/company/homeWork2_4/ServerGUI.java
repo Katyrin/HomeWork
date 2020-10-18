@@ -11,7 +11,7 @@ public class ServerGUI extends JFrame implements ActionListener, Thread.Uncaught
     private static final int WIDTH = 200;
     private static final int HEIGHT = 100;
 
-    private final ChatServer chatServer = new ChatServer();
+    private static final ChatServer chatServer = new ChatServer();
     private final JButton btnStart = new JButton("Start");
     private final JButton btnStop = new JButton("Stop");
 
@@ -26,7 +26,7 @@ public class ServerGUI extends JFrame implements ActionListener, Thread.Uncaught
 
     private ServerGUI(){
         Thread.setDefaultUncaughtExceptionHandler(this);
-        setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
+        setDefaultCloseOperation(WindowConstants.HIDE_ON_CLOSE);
         setBounds(POS_X,POS_Y,WIDTH,HEIGHT);
         setResizable(false);
         setTitle("Chat Server");
@@ -60,5 +60,9 @@ public class ServerGUI extends JFrame implements ActionListener, Thread.Uncaught
                 e.getMessage() + "\n\t at " + ste[0];
         JOptionPane.showMessageDialog(this,msg,"Exception",JOptionPane.ERROR_MESSAGE);
         System.exit(1);
+    }
+
+    public static void writeChat(String text){
+        chatServer.createFileTXT(text);
     }
 }
