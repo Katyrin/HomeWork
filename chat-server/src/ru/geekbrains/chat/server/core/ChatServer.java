@@ -9,10 +9,13 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
+import java.util.Iterator;
+import java.util.Vector;
 
 public class ChatServer implements ServerSocketThreadListener, SocketThreadListener {
     private final DateFormat DATE_FORMAT = new SimpleDateFormat("HH:mm:ss:");
     private ServerSocketThread server = null;
+    private Vector<SocketThread> socketThreads = new Vector<>();
 
     public void start(int port){
         if (server != null && server.isAlive()){
@@ -26,6 +29,15 @@ public class ChatServer implements ServerSocketThreadListener, SocketThreadListe
         if (server == null || !server.isAlive()){
             System.out.println("Server is not running");
         }else {
+            // рассылка сообщений всем вощедшим пользователям что сервер закрывается
+            Iterator<SocketThread> it = socketThreads.iterator();
+            while (it.hasNext()){
+                SocketThread st = it.next();
+                if (st.isAlive()){
+                    st.sendMessage("Server stopped");
+                    st.close();
+                }
+            }
             server.interrupt();
         }
     }
@@ -53,14 +65,15 @@ public class ChatServer implements ServerSocketThreadListener, SocketThreadListe
 
     @Override
     public void onServerTimeout(ServerSocketThread thread, ServerSocket server) {
-        putLog("Server timeout");
+        //putLog("Server timeout");
     }
 
     @Override
     public void onSocketAccepted(ServerSocketThread thread, ServerSocket server, Socket socket) {
         putLog("Client connected");
         String name = "Socket Thread " + socket.getInetAddress() + ": " + socket.getPort();
-        new SocketThread(name, this, socket);
+        // собираю всех подсоеденившихся пользователей в Vector
+        socketThreads.add(new SocketThread(name, this, socket));
     }
 
     @Override
