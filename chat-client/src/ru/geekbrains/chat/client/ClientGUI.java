@@ -31,7 +31,7 @@ public class ClientGUI extends JFrame implements ActionListener, Thread.Uncaught
 
     private final JList<String> userList = new JList<>();
     private boolean shownIoErrors = false;
-    private  SocketThread socketThread;
+    private SocketThread socketThread;
 
     private ClientGUI(){
         Thread.setDefaultUncaughtExceptionHandler(this);
@@ -50,6 +50,8 @@ public class ClientGUI extends JFrame implements ActionListener, Thread.Uncaught
         btnSend.addActionListener(this);
         tfMessage.addActionListener(this);
         btnLogin.addActionListener(this);
+        // реализация кнопки дисконект
+        btnDisconnect.addActionListener(this);
 
         panelTop.add(tfIPAddress);
         panelTop.add(tfPort);
@@ -60,6 +62,8 @@ public class ClientGUI extends JFrame implements ActionListener, Thread.Uncaught
         panelBottom.add(btnDisconnect, BorderLayout.WEST);
         panelBottom.add(tfMessage, BorderLayout.CENTER);
         panelBottom.add(btnSend, BorderLayout.EAST);
+        // скрыл нижнюю панель
+        panelBottom.setVisible(false);
 
         add(scrollLog, BorderLayout.CENTER);
         add(scrollUser, BorderLayout.EAST);
@@ -87,6 +91,9 @@ public class ClientGUI extends JFrame implements ActionListener, Thread.Uncaught
             sendMessage();
         }else if (src == btnLogin){
             connect();
+        }else if (src == btnDisconnect) {
+            // реализация кнопки дисконект
+            socketThread.close();
         }else {
             showException(Thread.currentThread(), new RuntimeException("Unknown action source: " + src));
         }
@@ -159,11 +166,17 @@ public class ClientGUI extends JFrame implements ActionListener, Thread.Uncaught
     @Override
     public void onSocketStart(SocketThread thread, Socket socket) {
         putLog("Start");
+        // скрытие и показ панелей при старте
+        panelBottom.setVisible(true);
+        panelTop.setVisible(false);
     }
 
     @Override
     public void onSocketStop(SocketThread thread) {
         putLog("Stop");
+        // скрытие и показ панелей при стопе
+        panelBottom.setVisible(false);
+        panelTop.setVisible(true);
     }
 
     @Override
