@@ -1,5 +1,6 @@
 package ru.geekbrains.chat.client;
 
+import ru.geekbrains.chat.common.Library;
 import ru.geekbrains.network.SocketThread;
 import ru.geekbrains.network.SocketThreadListener;
 
@@ -166,22 +167,21 @@ public class ClientGUI extends JFrame implements ActionListener, Thread.Uncaught
     @Override
     public void onSocketStart(SocketThread thread, Socket socket) {
         putLog("Start");
-        // скрытие и показ панелей при старте
-        panelBottom.setVisible(true);
-        panelTop.setVisible(false);
     }
 
     @Override
     public void onSocketStop(SocketThread thread) {
-        putLog("Stop");
-        // скрытие и показ панелей при стопе
         panelBottom.setVisible(false);
         panelTop.setVisible(true);
     }
 
     @Override
     public void onSocketReady(SocketThread thread, Socket socket) {
-        putLog("Ready");
+        panelBottom.setVisible(true);
+        panelTop.setVisible(false);
+        String login = tfLogin.getText();
+        String password = new String(tfPassword.getPassword());
+        thread.sendMessage(Library.getAuthRequest(login, password));
     }
 
     @Override
