@@ -1,7 +1,10 @@
 package ru.geekbrains.chat.server.core;
 
 import ru.geekbrains.chat.common.Library;
-import ru.geekbrains.network.*;
+import ru.geekbrains.network.ServerSocketThread;
+import ru.geekbrains.network.ServerSocketThreadListener;
+import ru.geekbrains.network.SocketThread;
+import ru.geekbrains.network.SocketThreadListener;
 
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -11,6 +14,7 @@ import java.util.Vector;
 
 public class ChatServer implements ServerSocketThreadListener, SocketThreadListener {
     private final DateFormat DATE_FORMAT = new SimpleDateFormat("HH:mm:ss:");
+    private String currentTime = DATE_FORMAT.format(System.currentTimeMillis());
     private ServerSocketThread server = null;
     private Vector<SocketThread> clients = new Vector<>();
     private final ChatServerListener listener;
@@ -36,8 +40,7 @@ public class ChatServer implements ServerSocketThreadListener, SocketThreadListe
     }
 
     private void putLog(String msg){
-        msg = DATE_FORMAT.format(System.currentTimeMillis()) +
-                Thread.currentThread().getName() + ": " + msg;
+        msg = currentTime + Thread.currentThread().getName() + ": " + msg;
         listener.onChatServerMessage(msg);
     }
 
@@ -118,11 +121,11 @@ public class ChatServer implements ServerSocketThreadListener, SocketThreadListe
             return;
         }
         client.authAccept(nickname);
-        sendToAllAuthorizedClients(Library.getTypeBroadcast("Server", nickname + " connected"));
+        sendToAllAuthorizedClients(Library.getTypeBroadcast("Server", nickname + " connected", currentTime));
     }
 
     private void handleAuthorizedMessage(ClientThread client, String msg) {
-        sendToAllAuthorizedClients(Library.getTypeBroadcast(client.getNickname(), msg));
+        sendToAllAuthorizedClients(Library.getTypeBroadcast(client.getNickname(), msg, currentTime));
     }
 
     private void sendToAllAuthorizedClients(String msg) {

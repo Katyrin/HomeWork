@@ -11,6 +11,7 @@ import java.awt.event.ActionListener;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.net.Socket;
+import java.util.Arrays;
 
 public class ClientGUI extends JFrame implements ActionListener, Thread.UncaughtExceptionHandler, SocketThreadListener {
     private static final int WIDTH = 400;
@@ -186,7 +187,30 @@ public class ClientGUI extends JFrame implements ActionListener, Thread.Uncaught
 
     @Override
     public void onReceiveString(SocketThread thread, Socket socket, String msg) {
-        putLog(msg);
+        putLog(msgAdapter(msg));
+    }
+
+    private String msgAdapter(String msg){
+        msg = msg.replace('±', ' ');
+        String[] strings = msg.split(" ");
+        switch (strings[0]){
+            case Library.TYPE_BROADCAST:
+                msg = msg.replaceFirst(Library.TYPE_BROADCAST + " ", "");
+                break;
+            case Library.MSG_FORMAT_ERROR:
+                msg = msg.replaceAll(Library.MSG_FORMAT_ERROR, "Error");
+                break;
+            case Library.AUTH_ACCEPT:
+                msg = msg.replaceAll(Library.AUTH_ACCEPT, "Accept");
+                break;
+            case Library.AUTH_REQUEST:
+                msg = msg.replaceAll(Library.AUTH_REQUEST, "Request");
+                break;
+            case Library.AUTH_DENIED:
+                msg = msg.replaceAll(Library.AUTH_DENIED, "Denied");
+                break;
+        }
+        return msg;
     }
 
     @Override
