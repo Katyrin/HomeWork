@@ -26,8 +26,8 @@ public class Library {
         return MSG_FORMAT_ERROR + DELIMITER + message;
     }
 
-    public static String getTypeBroadcast(String src, String message){
-        return TYPE_BROADCAST + DELIMITER + System.currentTimeMillis() + DELIMITER +
+    public static String getTypeBroadcast(String src, String message, String currentTime){
+        return TYPE_BROADCAST + DELIMITER + currentTime + DELIMITER +
                 src + DELIMITER + message;
     }
 
