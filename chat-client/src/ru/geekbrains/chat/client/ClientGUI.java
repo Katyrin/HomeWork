@@ -55,6 +55,29 @@ public class ClientGUI extends JFrame implements ActionListener, Thread.Uncaught
         // реализация кнопки дисконект
         btnDisconnect.addActionListener(this);
 
+        userList.setSelectionModel(new DefaultListSelectionModel(){
+            @Override
+            public void setSelectionInterval(int index0, int index1) {
+                if (index0==index1) {
+                    if (isSelectedIndex(index0)) {
+                        removeSelectionInterval(index0, index0);
+                        return;
+                    }
+                }
+                super.setSelectionInterval(index0, index1);
+            }
+            @Override
+            public void addSelectionInterval(int index0, int index1) {
+                if (index0==index1) {
+                    if (isSelectedIndex(index0)) {
+                        removeSelectionInterval(index0, index0);
+                        return;
+                    }
+                    super.addSelectionInterval(index0, index1);
+                }
+            }
+        });
+
         panelTop.add(tfIPAddress);
         panelTop.add(tfPort);
         panelTop.add(cbAlwaysOnTop);
@@ -119,7 +142,12 @@ public class ClientGUI extends JFrame implements ActionListener, Thread.Uncaught
         tfMessage.grabFocus();
 //        putLog(String.format("%s: %s", userName, msg));
 //        wrtMsgToLogFile(msg, userName);
-        socketThread.sendMessage(Library.getClientBcastMsg(msg));
+        if (userList.isSelectionEmpty()){
+            socketThread.sendMessage(Library.getClientBcastMsg(msg));
+        }else {
+            socketThread.sendMessage(Library.getPrivateClientBcastMsg(msg
+                    + Library.DELIMITER + userList.getSelectedValue()));
+        }
     }
 
     private void wrtMsgToLogFile(String msg, String userName){
@@ -197,6 +225,7 @@ public class ClientGUI extends JFrame implements ActionListener, Thread.Uncaught
         String msgType = arr[0];
         switch (msgType){
             case Library.SERVER_BCAST_MSG:
+            case Library.PRIVATE_SERVER_BCAST_MSG:
                 putLog(String.format("[%s] <%s>: %s", arr[1], arr[2], arr[3]));
                 break;
             case Library.MSG_FORMAT_ERROR:
