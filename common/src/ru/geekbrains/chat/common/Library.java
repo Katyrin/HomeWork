@@ -10,7 +10,18 @@ public class Library {
     public static final String MSG_FORMAT_ERROR = "/msg_format_error";
     public static final String SERVER_BCAST_MSG = "/bcast";
     public static final String CLIENT_BCAST_MSG = "/client_broadcast";
+    public static final String PRIVATE_SERVER_BCAST_MSG = "/private_server_bcast";
+    public static final String PRIVATE_CLIENT_BCAST_MSG = "/private_client_bcast";
     public static final String USER_LIST = "/user_list";
+
+    public static String getPrivateServerBcastMsg(String src, String message, String currentTime) {
+        return PRIVATE_SERVER_BCAST_MSG + DELIMITER + currentTime + DELIMITER +
+                src + DELIMITER + message;
+    }
+
+    public static String getPrivateClientBcastMsg(String msg){
+        return PRIVATE_CLIENT_BCAST_MSG + DELIMITER + msg;
+    }
 
     public static String getClientBcastMsg(String msg){
         return CLIENT_BCAST_MSG + DELIMITER + msg;

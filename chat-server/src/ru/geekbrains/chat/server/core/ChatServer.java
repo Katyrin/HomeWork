@@ -167,8 +167,20 @@ public class ChatServer implements ServerSocketThreadListener, SocketThreadListe
             case Library.CLIENT_BCAST_MSG:
                 sendToAllAuthorizedClients(Library.getTypeBroadcast(client.getNickname(), arr[1], currentTime));
                 break;
+            case Library.PRIVATE_CLIENT_BCAST_MSG:
+                sendPrivateMessage(Library.getPrivateServerBcastMsg("P-msg: " + client.getNickname(),
+                        arr[1], currentTime), arr[2]);
+                break;
             default:
                 client.sendMessage(Library.getMsgFormatError(msg));
+        }
+    }
+
+    private void sendPrivateMessage(String msg, String nickname){
+        for (int i = 0; i < clients.size(); i++) {
+            ClientThread client = (ClientThread) clients.get(i);
+            if (client.getNickname().equals(nickname))
+                client.sendMessage(msg);
         }
     }
 
