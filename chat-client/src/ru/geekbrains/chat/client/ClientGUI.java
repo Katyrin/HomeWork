@@ -17,6 +17,8 @@ public class ClientGUI extends JFrame implements ActionListener, Thread.Uncaught
     private static final int WIDTH = 400;
     private static final int HEIGHT = 300;
 
+    private static final String WINDOW_TITLE = "Chat client";
+
     private final JTextArea log = new JTextArea();
     private final JPanel panelTop = new JPanel(new GridLayout(2, 3));
     private final JTextField tfIPAddress = new JTextField("127.0.0.1");
@@ -40,13 +42,11 @@ public class ClientGUI extends JFrame implements ActionListener, Thread.Uncaught
         setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
         setLocationRelativeTo(null);
         setSize(WIDTH, HEIGHT);
+        setTitle(WINDOW_TITLE);
         log.setEditable(false);
         log.setLineWrap(true);
         JScrollPane scrollLog = new JScrollPane(log);
         JScrollPane scrollUser = new JScrollPane(userList);
-        String[] users = {"user1", "user2", "user3", "user4", "user5",
-                "user_with_an_exceptionally_long_name_in_this_chat"};
-        userList.setListData(users);
         scrollUser.setPreferredSize(new Dimension(100, 0));
         cbAlwaysOnTop.addActionListener(this);
         btnSend.addActionListener(this);
@@ -119,7 +119,7 @@ public class ClientGUI extends JFrame implements ActionListener, Thread.Uncaught
         tfMessage.grabFocus();
 //        putLog(String.format("%s: %s", userName, msg));
 //        wrtMsgToLogFile(msg, userName);
-        socketThread.sendMessage(msg);
+        socketThread.sendMessage(Library.getClientBcastMsg(msg));
     }
 
     private void wrtMsgToLogFile(String msg, String userName){
@@ -154,8 +154,8 @@ public class ClientGUI extends JFrame implements ActionListener, Thread.Uncaught
         }else {
             msg = String.format("Exception in \"%s\" %s: %s\n\tat %s", t.getName(), e.getClass().getCanonicalName(),
                     e.getMessage(), ste[0]);
-            JOptionPane.showMessageDialog(null, msg, "Exception", JOptionPane.ERROR_MESSAGE);
         }
+        JOptionPane.showMessageDialog(null, msg, "Exception", JOptionPane.ERROR_MESSAGE);
     }
 
     @Override
@@ -174,6 +174,8 @@ public class ClientGUI extends JFrame implements ActionListener, Thread.Uncaught
     public void onSocketStop(SocketThread thread) {
         panelBottom.setVisible(false);
         panelTop.setVisible(true);
+        setTitle(WINDOW_TITLE);
+        userList.setListData(new String[0]);
     }
 
     @Override
@@ -187,30 +189,35 @@ public class ClientGUI extends JFrame implements ActionListener, Thread.Uncaught
 
     @Override
     public void onReceiveString(SocketThread thread, Socket socket, String msg) {
-        putLog(msgAdapter(msg));
+        handleMessage(msg);
     }
 
-    private String msgAdapter(String msg){
-        msg = msg.replace('±', ' ');
-        String[] strings = msg.split(" ");
-        switch (strings[0]){
-            case Library.TYPE_BROADCAST:
-                msg = msg.replaceFirst(Library.TYPE_BROADCAST + " ", "");
+    private void handleMessage(String msg){
+        String[] arr = msg.split(Library.DELIMITER);
+        String msgType = arr[0];
+        switch (msgType){
+            case Library.SERVER_BCAST_MSG:
+                putLog(String.format("[%s] <%s>: %s", arr[1], arr[2], arr[3]));
                 break;
             case Library.MSG_FORMAT_ERROR:
-                msg = msg.replaceAll(Library.MSG_FORMAT_ERROR, "Error");
+                putLog(msg);
+                socketThread.close();
                 break;
             case Library.AUTH_ACCEPT:
-                msg = msg.replaceAll(Library.AUTH_ACCEPT, "Accept");
+                setTitle(String.format("%s entered with nickname: %s", WINDOW_TITLE, arr[1]));
                 break;
-            case Library.AUTH_REQUEST:
-                msg = msg.replaceAll(Library.AUTH_REQUEST, "Request");
+            case Library.USER_LIST:
+                String users = msg.substring(Library.USER_LIST.length() + Library.DELIMITER.length());
+                String[] usersArr = users.split(Library.DELIMITER);
+                Arrays.sort(usersArr);
+                userList.setListData(usersArr);
                 break;
             case Library.AUTH_DENIED:
-                msg = msg.replaceAll(Library.AUTH_DENIED, "Denied");
+                putLog(msg);
                 break;
+            default:
+                throw new RuntimeException("Unknown message type: " + msg);
         }
-        return msg;
     }
 
     @Override
