@@ -13,7 +13,7 @@ import java.text.SimpleDateFormat;
 import java.util.Vector;
 
 public class ChatServer implements ServerSocketThreadListener, SocketThreadListener {
-    private final DateFormat DATE_FORMAT = new SimpleDateFormat("HH:mm:ss:");
+    private final DateFormat DATE_FORMAT = new SimpleDateFormat("HH:mm:ss");
     private String currentTime = DATE_FORMAT.format(System.currentTimeMillis());
     private ServerSocketThread server = null;
     private Vector<SocketThread> clients = new Vector<>();
@@ -40,8 +40,18 @@ public class ChatServer implements ServerSocketThreadListener, SocketThreadListe
     }
 
     private void putLog(String msg){
-        msg = currentTime + Thread.currentThread().getName() + ": " + msg;
+        msg = currentTime + ": " + Thread.currentThread().getName() + ": " + msg;
         listener.onChatServerMessage(msg);
+    }
+
+    private String getUsers(){
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < clients.size(); i++) {
+            ClientThread client = (ClientThread) clients.get(i);
+            if (!client.isAuthorized()) continue;
+            sb.append(client.getNickname()).append(Library.DELIMITER);
+        }
+        return sb.toString();
     }
 
     @Override
@@ -54,6 +64,7 @@ public class ChatServer implements ServerSocketThreadListener, SocketThreadListe
     public void onServerStop(ServerSocketThread thread) {
         putLog("Server thread stopped");
         SqlClient.disconnect();
+        clients.forEach(SocketThread::close);
     }
 
     @Override
@@ -87,7 +98,13 @@ public class ChatServer implements ServerSocketThreadListener, SocketThreadListe
 
     @Override
     public void onSocketStop(SocketThread thread) {
+        ClientThread client = (ClientThread) thread;
         clients.remove(thread);
+        if (client.isAuthorized() && !client.isReconnecting()){
+            sendToAllAuthorizedClients(Library.getTypeBroadcast("Server",
+                    String.format("%s disconnected", client.getNickname()), currentTime));
+        }
+        sendToAllAuthorizedClients(Library.getUserList(getUsers()));
     }
 
     @Override
@@ -119,13 +136,40 @@ public class ChatServer implements ServerSocketThreadListener, SocketThreadListe
             putLog("Invalid login attempt: " + login);
             client.authFail();
             return;
+        }else {
+            ClientThread oldClient = findClientByNickname(nickname);
+            client.authAccept(nickname);
+            if (oldClient == null){
+                sendToAllAuthorizedClients(Library.getTypeBroadcast("Server",
+                        nickname + " connected", currentTime));
+            }else {
+                oldClient.reconnect();
+                clients.remove(oldClient);
+            }
         }
-        client.authAccept(nickname);
-        sendToAllAuthorizedClients(Library.getTypeBroadcast("Server", nickname + " connected", currentTime));
+        sendToAllAuthorizedClients(Library.getUserList(getUsers()));
+    }
+
+    private synchronized ClientThread findClientByNickname(String nickname){
+        for (int i = 0; i < clients.size(); i++) {
+            ClientThread client = (ClientThread) clients.get(i);
+            if (!client.isAuthorized()) continue;
+            if (client.getNickname().equals(nickname))
+                return client;
+        }
+        return null;
     }
 
     private void handleAuthorizedMessage(ClientThread client, String msg) {
-        sendToAllAuthorizedClients(Library.getTypeBroadcast(client.getNickname(), msg, currentTime));
+        String[] arr = msg.split(Library.DELIMITER);
+        String msgType = arr[0];
+        switch (msgType){
+            case Library.CLIENT_BCAST_MSG:
+                sendToAllAuthorizedClients(Library.getTypeBroadcast(client.getNickname(), arr[1], currentTime));
+                break;
+            default:
+                client.sendMessage(Library.getMsgFormatError(msg));
+        }
     }
 
     private void sendToAllAuthorizedClients(String msg) {
