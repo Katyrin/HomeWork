@@ -6,11 +6,14 @@ import ru.geekbrains.network.ServerSocketThreadListener;
 import ru.geekbrains.network.SocketThread;
 import ru.geekbrains.network.SocketThreadListener;
 
+import java.io.FileInputStream;
+import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Vector;
+import java.util.logging.*;
 
 public class ChatServer implements ServerSocketThreadListener, SocketThreadListener {
     private final DateFormat DATE_FORMAT = new SimpleDateFormat("HH:mm:ss");
@@ -18,6 +21,8 @@ public class ChatServer implements ServerSocketThreadListener, SocketThreadListe
     private ServerSocketThread server = null;
     private Vector<SocketThread> clients = new Vector<>();
     private final ChatServerListener listener;
+    private static final Logger logger = Logger.getLogger("");
+    private  Handler handler;
 
     public ChatServer(ChatServerListener listener){
         this.listener = listener;
@@ -42,6 +47,33 @@ public class ChatServer implements ServerSocketThreadListener, SocketThreadListe
     private void putLog(String msg){
         msg = currentTime + ": " + Thread.currentThread().getName() + ": " + msg;
         listener.onChatServerMessage(msg);
+
+        logger.setLevel(Level.INFO);
+        logger.getHandlers()[0].setLevel(Level.INFO);
+
+        try (FileInputStream fio = new FileInputStream("logging.properties")){
+            LogManager.getLogManager().readConfiguration(fio);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        logger.getHandlers()[0].setFormatter(new Formatter() {
+            @Override
+            public String format(LogRecord record) {
+                return record.getLevel() + "\t" + record.getMessage() + "\n";
+            }
+        });
+
+        try {
+            handler = new FileHandler("mylog.log", true);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        handler.setLevel(Level.INFO);
+        handler.setFormatter(new SimpleFormatter());
+        logger.addHandler(handler);
+
+        logger.log(Level.INFO, msg);
     }
 
     private String getUsers(){
@@ -101,8 +133,10 @@ public class ChatServer implements ServerSocketThreadListener, SocketThreadListe
         ClientThread client = (ClientThread) thread;
         clients.remove(thread);
         if (client.isAuthorized() && !client.isReconnecting()){
-            sendToAllAuthorizedClients(Library.getTypeBroadcast("Server",
-                    String.format("%s disconnected", client.getNickname()), currentTime));
+            String msg = Library.getTypeBroadcast("Server",
+                    String.format("%s disconnected", client.getNickname()), currentTime);
+            sendToAllAuthorizedClients(msg);
+            putLog(formatMsg(msg));
         }
         sendToAllAuthorizedClients(Library.getUserList(getUsers()));
     }
@@ -140,8 +174,10 @@ public class ChatServer implements ServerSocketThreadListener, SocketThreadListe
             ClientThread oldClient = findClientByNickname(nickname);
             client.authAccept(nickname);
             if (oldClient == null){
-                sendToAllAuthorizedClients(Library.getTypeBroadcast("Server",
-                        nickname + " connected", currentTime));
+                String message = Library.getTypeBroadcast("Server",
+                        nickname + " connected", currentTime);
+                sendToAllAuthorizedClients(message);
+                putLog(formatMsg(message));
             }else {
                 oldClient.reconnect();
                 clients.remove(oldClient);
@@ -166,6 +202,7 @@ public class ChatServer implements ServerSocketThreadListener, SocketThreadListe
         switch (msgType){
             case Library.CLIENT_BCAST_MSG:
                 sendToAllAuthorizedClients(Library.getTypeBroadcast(client.getNickname(), arr[1], currentTime));
+                putLog(formatMsg(Library.getTypeBroadcast(client.getNickname(), "Send message", currentTime)));
                 break;
             case Library.PRIVATE_CLIENT_BCAST_MSG:
                 sendPrivateMessage(Library.getPrivateServerBcastMsg("P-msg: " + client.getNickname(),
@@ -195,5 +232,10 @@ public class ChatServer implements ServerSocketThreadListener, SocketThreadListe
     @Override
     public void onSocketException(SocketThread thread, Exception exception) {
         exception.printStackTrace();
+    }
+
+    private String formatMsg(String msg){
+        String[] arr = msg.split(Library.DELIMITER);
+        return arr[2] + " " + arr[3];
     }
 }
